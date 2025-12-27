@@ -1,0 +1,1187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Strategy Tester WSL - Kanban Board</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #1e1e1e;
+            --bg-secondary: #252526;
+            --bg-tertiary: #2d2d30;
+            --bg-card: #2d2d30;
+            --text-primary: #cccccc;
+            --text-secondary: #858585;
+            --border-color: #3e3e42;
+            --accent-green: #4ec9b0;
+            --accent-blue: #569cd6;
+            --accent-yellow: #dcdcaa;
+            --accent-red: #f48771;
+            --done-bg: #3a3a3a;
+            --done-text: #808080;
+        }
+
+        @media (prefers-color-scheme: light) {
+            :root {
+                --bg-primary: #ffffff;
+                --bg-secondary: #f3f3f3;
+                --bg-tertiary: #e8e8e8;
+                --bg-card: #ffffff;
+                --text-primary: #333333;
+                --text-secondary: #666666;
+                --border-color: #d4d4d4;
+                --accent-green: #16825d;
+                --accent-blue: #0078d4;
+                --accent-yellow: #ca5010;
+                --accent-red: #d13438;
+                --done-bg: #f0f0f0;
+                --done-text: #999999;
+            }
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            overflow-x: hidden;
+        }
+
+        header {
+            background-color: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        h1 {
+            font-size: 1.25rem;
+            font-weight: 500;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+        }
+
+        button {
+            background-color: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: background-color 0.2s;
+        }
+
+        button:hover {
+            background-color: var(--bg-card);
+        }
+
+        button:active {
+            transform: translateY(1px);
+        }
+
+        .search-input {
+            background-color: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            font-size: 0.875rem;
+            width: 250px;
+        }
+
+        .search-input::placeholder {
+            color: var(--text-secondary);
+        }
+
+        #board {
+            display: flex;
+            gap: 1rem;
+            padding: 1.5rem;
+            overflow-x: auto;
+            min-height: calc(100vh - 70px);
+        }
+
+        .column {
+            flex: 0 0 300px;
+            background-color: var(--bg-secondary);
+            border-radius: 8px;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .column.in-progress {
+            border: 2px solid var(--accent-green);
+        }
+
+        .column.done {
+            background-color: var(--done-bg);
+        }
+
+        .column-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .column-title {
+            font-size: 0.875rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .column-count {
+            background-color: var(--bg-tertiary);
+            color: var(--text-secondary);
+            padding: 0.25rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+        }
+
+        .task-list {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            overflow-y: auto;
+        }
+
+        .task-card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .task-card:hover {
+            border-color: var(--accent-blue);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .task-card.dragging {
+            opacity: 0.5;
+        }
+
+        .task-card.collapsed {
+            padding: 0.5rem 0.875rem;
+        }
+
+        .task-card.done {
+            background-color: var(--done-bg);
+            color: var(--done-text);
+        }
+
+        .task-title {
+            font-size: 0.9375rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            line-height: 1.4;
+        }
+
+        .task-card.collapsed .task-title {
+            margin-bottom: 0;
+        }
+
+        .task-title.done::before {
+            content: '✓ ';
+            color: var(--accent-green);
+        }
+
+        .task-description {
+            font-size: 0.8125rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.75rem;
+            line-height: 1.5;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .task-metadata {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .task-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.375rem;
+        }
+
+        .tag {
+            padding: 0.25rem 0.5rem;
+            border-radius: 3px;
+            font-size: 0.6875rem;
+            font-weight: 500;
+        }
+
+        .task-dates {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .task-progress {
+            margin-top: 0.5rem;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background-color: var(--bg-tertiary);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background-color: var(--accent-blue);
+            transition: width 0.3s;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.visible {
+            display: flex;
+        }
+
+        .modal-content {
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0;
+            width: 2rem;
+            height: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .close-btn:hover {
+            color: var(--text-primary);
+        }
+
+        .form-group {
+            margin-bottom: 1.25rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .form-input,
+        .form-textarea {
+            width: 100%;
+            background-color: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            padding: 0.625rem;
+            border-radius: 4px;
+            font-size: 0.875rem;
+            font-family: inherit;
+        }
+
+        .form-textarea {
+            min-height: 300px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            resize: vertical;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 0.75rem;
+            justify-content: flex-end;
+            margin-top: 1.5rem;
+        }
+
+        .btn-primary {
+            background-color: var(--accent-blue);
+            color: white;
+            border: none;
+        }
+
+        .btn-primary:hover {
+            background-color: #4a8cc7;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-secondary);
+        }
+
+        .loading.visible {
+            display: block;
+        }
+
+        .error {
+            background-color: var(--accent-red);
+            color: white;
+            padding: 1rem;
+            border-radius: 4px;
+            margin: 1rem;
+            display: none;
+        }
+
+        .error.visible {
+            display: block;
+        }
+
+        .setup-message {
+            max-width: 600px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .setup-message h2 {
+            margin-bottom: 1rem;
+            color: var(--accent-blue);
+        }
+
+        .setup-message p {
+            margin-bottom: 1rem;
+            line-height: 1.6;
+        }
+
+        .setup-message button {
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1 id="board-title">Strategy Tester WSL</h1>
+        <div class="header-actions">
+            <input type="search" class="search-input" id="search" placeholder="Filter tasks...">
+            <button id="refresh-btn">Refresh</button>
+            <button id="new-task-btn">New Task</button>
+            <button id="select-dir-btn">Select Board Directory</button>
+        </div>
+    </header>
+
+    <div class="loading" id="loading">
+        <p>Loading board...</p>
+    </div>
+
+    <div class="error" id="error"></div>
+
+    <div id="setup-container"></div>
+
+    <div id="board"></div>
+
+    <div class="modal" id="task-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modal-title">Edit Task</h2>
+                <button class="close-btn" id="close-modal">&times;</button>
+            </div>
+            <form id="task-form">
+                <div class="form-group">
+                    <label class="form-label" for="task-title-input">Title</label>
+                    <input type="text" class="form-input" id="task-title-input" required>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="task-assigned">Assigned</label>
+                        <input type="text" class="form-input" id="task-assigned">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="task-progress">Progress (%)</label>
+                        <input type="number" class="form-input" id="task-progress" min="0" max="100">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label" for="task-due">Due Date</label>
+                        <input type="datetime-local" class="form-input" id="task-due">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="task-tags">Tags (comma-separated)</label>
+                        <input type="text" class="form-input" id="task-tags">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="task-content">Content (Markdown)</label>
+                    <textarea class="form-textarea" id="task-content" required></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" id="cancel-btn">Cancel</button>
+                    <button type="submit" class="btn-primary">Save Task</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Application State
+        const state = {
+            dirHandle: null,
+            kanbnHandle: null,
+            tasksHandle: null,
+            indexData: null,
+            tasks: new Map(),
+            columns: ['Backlog', 'Ready', 'In Progress', 'Review', 'Done'],
+            currentTask: null
+        };
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', init);
+
+        async function init() {
+            setupEventListeners();
+            
+            // Try to restore previous directory handle
+            const hasPermission = await checkStoredPermission();
+            if (!hasPermission) {
+                showSetupMessage();
+            }
+        }
+
+        function setupEventListeners() {
+            document.getElementById('select-dir-btn').addEventListener('click', selectDirectory);
+            document.getElementById('refresh-btn').addEventListener('click', loadBoard);
+            document.getElementById('new-task-btn').addEventListener('click', () => openTaskEditor(null, 'Backlog'));
+            document.getElementById('close-modal').addEventListener('click', closeTaskEditor);
+            document.getElementById('cancel-btn').addEventListener('click', closeTaskEditor);
+            document.getElementById('task-form').addEventListener('submit', saveTask);
+            document.getElementById('search').addEventListener('input', filterTasks);
+        }
+
+        async function checkStoredPermission() {
+            // File System Access API doesn't persist handles across sessions
+            // User must select directory each time
+            return false;
+        }
+
+        function showSetupMessage() {
+            const container = document.getElementById('setup-container');
+            container.innerHTML = `
+                <div class="setup-message">
+                    <h2>Welcome to Kanban Board</h2>
+                    <p>To get started, please select your Kanbn board directory.</p>
+                    <p>Navigate to: <code>.kanbn_boards/Strategy Tester WSL/.kanbn</code></p>
+                    <button onclick="selectDirectory()">Select .kanbn Directory</button>
+                </div>
+            `;
+        }
+
+        async function selectDirectory() {
+            try {
+                const dirHandle = await window.showDirectoryPicker({
+                    mode: 'readwrite'
+                });
+                
+                state.dirHandle = dirHandle;
+                
+                // Verify it's a .kanbn directory
+                const hasIndex = await dirHandle.getFileHandle('index.md').catch(() => null);
+                const hasTasksDir = await dirHandle.getDirectoryHandle('tasks').catch(() => null);
+                
+                if (!hasIndex || !hasTasksDir) {
+                    showError('Selected directory is not a valid .kanbn directory. Please select the .kanbn folder.');
+                    return;
+                }
+                
+                state.kanbnHandle = dirHandle;
+                state.tasksHandle = hasTasksDir;
+                
+                document.getElementById('setup-container').innerHTML = '';
+                await loadBoard();
+            } catch (err) {
+                if (err.name !== 'AbortError') {
+                    showError('Failed to select directory: ' + err.message);
+                }
+            }
+        }
+
+        async function loadBoard() {
+            if (!state.kanbnHandle) {
+                showSetupMessage();
+                return;
+            }
+
+            showLoading(true);
+            hideError();
+
+            try {
+                // Read index.md
+                const indexHandle = await state.kanbnHandle.getFileHandle('index.md');
+                const indexFile = await indexHandle.getFile();
+                const indexContent = await indexFile.text();
+                
+                state.indexData = parseIndexMd(indexContent);
+                
+                // Read all task files
+                await loadAllTasks();
+                
+                // Render board
+                renderBoard();
+                
+                showLoading(false);
+            } catch (err) {
+                showLoading(false);
+                showError('Failed to load board: ' + err.message);
+            }
+        }
+
+        function parseIndexMd(content) {
+            const lines = content.split('\n');
+            const data = {
+                frontmatter: {},
+                title: '',
+                columns: {}
+            };
+
+            let inFrontmatter = false;
+            let currentColumn = null;
+            let frontmatterLines = [];
+
+            for (const line of lines) {
+                if (line.trim() === '---') {
+                    if (!inFrontmatter) {
+                        inFrontmatter = true;
+                    } else {
+                        inFrontmatter = false;
+                        data.frontmatter = parseYAML(frontmatterLines.join('\n'));
+                        frontmatterLines = [];
+                    }
+                    continue;
+                }
+
+                if (inFrontmatter) {
+                    frontmatterLines.push(line);
+                    continue;
+                }
+
+                if (line.startsWith('# ')) {
+                    data.title = line.substring(2).trim();
+                } else if (line.startsWith('## ')) {
+                    currentColumn = line.substring(3).trim();
+                    data.columns[currentColumn] = [];
+                } else if (line.startsWith('- [') && currentColumn) {
+                    const match = line.match(/- \[([^\]]+)\]\(tasks\/([^)]+)\)/);
+                    if (match) {
+                        data.columns[currentColumn].push(match[2].replace('.md', ''));
+                    }
+                }
+            }
+
+            return data;
+        }
+
+        function parseYAML(yamlText) {
+            const result = {};
+            const lines = yamlText.split('\n');
+            let currentKey = null;
+            let currentArray = null;
+
+            for (const line of lines) {
+                const trimmed = line.trim();
+                if (!trimmed) continue;
+
+                if (trimmed.startsWith('- ')) {
+                    if (currentArray) {
+                        currentArray.push(trimmed.substring(2).replace(/^['"]|['"]$/g, ''));
+                    }
+                } else if (trimmed.includes(':')) {
+                    const [key, ...valueParts] = trimmed.split(':');
+                    const value = valueParts.join(':').trim();
+                    currentKey = key.trim();
+                    
+                    if (value) {
+                        result[currentKey] = value.replace(/^['"]|['"]$/g, '');
+                        currentArray = null;
+                    } else {
+                        result[currentKey] = [];
+                        currentArray = result[currentKey];
+                    }
+                }
+            }
+
+            return result;
+        }
+
+        async function loadAllTasks() {
+            state.tasks.clear();
+
+            for (const column of Object.keys(state.indexData.columns)) {
+                for (const taskName of state.indexData.columns[column]) {
+                    try {
+                        const taskHandle = await state.tasksHandle.getFileHandle(taskName + '.md');
+                        const taskFile = await taskHandle.getFile();
+                        const taskContent = await taskFile.text();
+                        
+                        const taskData = parseTaskMd(taskContent);
+                        taskData.name = taskName;
+                        taskData.column = column;
+                        
+                        state.tasks.set(taskName, taskData);
+                    } catch (err) {
+                        console.error(`Failed to load task ${taskName}:`, err);
+                    }
+                }
+            }
+        }
+
+        function parseTaskMd(content) {
+            const lines = content.split('\n');
+            const data = {
+                frontmatter: {},
+                title: '',
+                description: ''
+            };
+
+            let inFrontmatter = false;
+            let frontmatterLines = [];
+            let contentLines = [];
+            let foundTitle = false;
+
+            for (const line of lines) {
+                if (line.trim() === '---') {
+                    if (!inFrontmatter) {
+                        inFrontmatter = true;
+                    } else {
+                        inFrontmatter = false;
+                        data.frontmatter = parseYAML(frontmatterLines.join('\n'));
+                        frontmatterLines = [];
+                    }
+                    continue;
+                }
+
+                if (inFrontmatter) {
+                    frontmatterLines.push(line);
+                } else {
+                    if (line.startsWith('# ') && !foundTitle) {
+                        data.title = line.substring(2).trim();
+                        foundTitle = true;
+                    } else if (foundTitle) {
+                        contentLines.push(line);
+                    }
+                }
+            }
+
+            data.description = contentLines.join('\n').trim();
+            data.fullContent = content;
+
+            return data;
+        }
+
+        function renderBoard() {
+            const board = document.getElementById('board');
+            board.innerHTML = '';
+
+            document.getElementById('board-title').textContent = state.indexData.title || 'Kanban Board';
+
+            for (const columnName of state.columns) {
+                const tasks = state.indexData.columns[columnName] || [];
+                const columnEl = createColumnElement(columnName, tasks);
+                board.appendChild(columnEl);
+            }
+        }
+
+        function createColumnElement(columnName, taskNames) {
+            const column = document.createElement('div');
+            column.className = 'column';
+            column.dataset.column = columnName;
+            
+            if (columnName === 'In Progress') {
+                column.classList.add('in-progress');
+            } else if (columnName === 'Done') {
+                column.classList.add('done');
+            }
+
+            const header = document.createElement('div');
+            header.className = 'column-header';
+            header.innerHTML = `
+                <span class="column-title">${columnName}</span>
+                <span class="column-count">${taskNames.length}</span>
+            `;
+
+            const taskList = document.createElement('div');
+            taskList.className = 'task-list';
+            
+            // Enable drop zone
+            taskList.addEventListener('dragover', handleDragOver);
+            taskList.addEventListener('drop', (e) => handleDrop(e, columnName));
+
+            for (const taskName of taskNames) {
+                const task = state.tasks.get(taskName);
+                if (task) {
+                    const taskCard = createTaskCard(task, columnName === 'Done');
+                    taskList.appendChild(taskCard);
+                }
+            }
+
+            column.appendChild(header);
+            column.appendChild(taskList);
+
+            return column;
+        }
+
+        function createTaskCard(task, isDone) {
+            const card = document.createElement('div');
+            card.className = 'task-card';
+            card.draggable = true;
+            card.dataset.taskName = task.name;
+            
+            if (isDone) {
+                card.classList.add('done', 'collapsed');
+            }
+
+            card.addEventListener('dragstart', handleDragStart);
+            card.addEventListener('dragend', handleDragEnd);
+            card.addEventListener('click', () => openTaskEditor(task.name));
+
+            const title = document.createElement('div');
+            title.className = 'task-title' + (isDone ? ' done' : '');
+            title.textContent = task.title;
+
+            card.appendChild(title);
+
+            if (!isDone) {
+                // Description
+                if (task.description) {
+                    const desc = document.createElement('div');
+                    desc.className = 'task-description';
+                    desc.textContent = task.description.substring(0, 150) + (task.description.length > 150 ? '...' : '');
+                    card.appendChild(desc);
+                }
+
+                // Metadata
+                const metadata = document.createElement('div');
+                metadata.className = 'task-metadata';
+
+                // Tags
+                if (task.frontmatter.tags && task.frontmatter.tags.length > 0) {
+                    const tagsDiv = document.createElement('div');
+                    tagsDiv.className = 'task-tags';
+                    
+                    for (const tag of task.frontmatter.tags) {
+                        const tagEl = document.createElement('span');
+                        tagEl.className = 'tag';
+                        tagEl.textContent = tag;
+                        tagEl.style.backgroundColor = getTagColor(tag);
+                        tagEl.style.color = '#ffffff';
+                        tagsDiv.appendChild(tagEl);
+                    }
+                    
+                    metadata.appendChild(tagsDiv);
+                }
+
+                // Dates
+                const dates = document.createElement('div');
+                dates.className = 'task-dates';
+                
+                if (task.frontmatter.created) {
+                    dates.innerHTML += `📅 Created: ${formatDate(task.frontmatter.created)}<br>`;
+                }
+                if (task.frontmatter.updated) {
+                    dates.innerHTML += `🔄 Updated: ${formatDate(task.frontmatter.updated)}<br>`;
+                }
+                if (task.frontmatter.due) {
+                    dates.innerHTML += `⏰ Due: ${formatDate(task.frontmatter.due)}<br>`;
+                }
+                
+                metadata.appendChild(dates);
+
+                // Progress
+                const progress = parseInt(task.frontmatter.progress) || 0;
+                if (progress > 0) {
+                    const progressDiv = document.createElement('div');
+                    progressDiv.className = 'task-progress';
+                    progressDiv.innerHTML = `
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${progress}%"></div>
+                        </div>
+                    `;
+                    metadata.appendChild(progressDiv);
+                }
+
+                card.appendChild(metadata);
+            } else {
+                // Done column - just show completed date
+                if (task.frontmatter.completed) {
+                    const completedDiv = document.createElement('div');
+                    completedDiv.className = 'task-metadata';
+                    completedDiv.innerHTML = `📅 Completed: ${formatDate(task.frontmatter.completed)}`;
+                    card.appendChild(completedDiv);
+                }
+            }
+
+            return card;
+        }
+
+        function getTagColor(tag) {
+            // Simple hash function to generate consistent colors
+            let hash = 0;
+            for (let i = 0; i < tag.length; i++) {
+                hash = tag.charCodeAt(i) + ((hash << 5) - hash);
+            }
+            
+            const hue = Math.abs(hash % 360);
+            return `hsl(${hue}, 60%, 45%)`;
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return '';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('en-GB', { 
+                day: 'numeric', 
+                month: 'short', 
+                year: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        // Drag and Drop
+        let draggedTask = null;
+
+        function handleDragStart(e) {
+            draggedTask = e.target.dataset.taskName;
+            e.target.classList.add('dragging');
+        }
+
+        function handleDragEnd(e) {
+            e.target.classList.remove('dragging');
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+        }
+
+        async function handleDrop(e, targetColumn) {
+            e.preventDefault();
+            
+            if (!draggedTask) return;
+
+            const task = state.tasks.get(draggedTask);
+            if (!task) return;
+
+            const sourceColumn = task.column;
+            if (sourceColumn === targetColumn) return;
+
+            try {
+                // Update index.md
+                await moveTaskInIndex(draggedTask, sourceColumn, targetColumn);
+                
+                // Update task file metadata
+                await updateTaskMetadata(draggedTask, targetColumn);
+                
+                // Reload board
+                await loadBoard();
+            } catch (err) {
+                showError('Failed to move task: ' + err.message);
+            }
+
+            draggedTask = null;
+        }
+
+        async function moveTaskInIndex(taskName, fromColumn, toColumn) {
+            // Read current index
+            const indexHandle = await state.kanbnHandle.getFileHandle('index.md');
+            const indexFile = await indexHandle.getFile();
+            let content = await indexFile.text();
+
+            // Remove from source column
+            const taskLink = `- [${taskName}](tasks/${taskName}.md)`;
+            content = content.replace(taskLink + '\n', '');
+
+            // Add to target column
+            const columnHeader = `## ${toColumn}`;
+            const columnIndex = content.indexOf(columnHeader);
+            if (columnIndex !== -1) {
+                const nextColumnIndex = content.indexOf('\n## ', columnIndex + 1);
+                const insertIndex = nextColumnIndex !== -1 ? nextColumnIndex : content.length;
+                
+                const beforeColumn = content.substring(0, insertIndex);
+                const afterColumn = content.substring(insertIndex);
+                
+                content = beforeColumn + '\n' + taskLink + '\n' + afterColumn;
+            }
+
+            // Write back
+            const writable = await indexHandle.createWritable();
+            await writable.write(content);
+            await writable.close();
+        }
+
+        async function updateTaskMetadata(taskName, newColumn) {
+            const taskHandle = await state.tasksHandle.getFileHandle(taskName + '.md', { create: false });
+            const taskFile = await taskHandle.getFile();
+            let content = await taskFile.text();
+
+            const now = new Date().toISOString();
+            
+            // Update 'updated' timestamp
+            content = content.replace(/updated: .+/, `updated: ${now}`);
+
+            // Add 'started' if moving to In Progress
+            if (newColumn === 'In Progress' && !content.includes('started:')) {
+                content = content.replace(/progress: \d+/, `progress: 0\nstarted: ${now}`);
+            }
+
+            // Add 'completed' if moving to Done
+            if (newColumn === 'Done' && !content.includes('completed:')) {
+                content = content.replace(/progress: \d+/, `progress: 100\ncompleted: ${now}`);
+            }
+
+            // Write back
+            const writable = await taskHandle.createWritable();
+            await writable.write(content);
+            await writable.close();
+        }
+
+        // Task Editor
+        function openTaskEditor(taskName, defaultColumn = null) {
+            state.currentTask = taskName;
+            
+            const modal = document.getElementById('task-modal');
+            const form = document.getElementById('task-form');
+            
+            if (taskName) {
+                const task = state.tasks.get(taskName);
+                document.getElementById('modal-title').textContent = 'Edit Task';
+                document.getElementById('task-title-input').value = task.title;
+                document.getElementById('task-assigned').value = task.frontmatter.assigned || '';
+                document.getElementById('task-progress').value = parseInt(task.frontmatter.progress) || 0;
+                document.getElementById('task-due').value = task.frontmatter.due ? new Date(task.frontmatter.due).toISOString().slice(0, 16) : '';
+                document.getElementById('task-tags').value = (task.frontmatter.tags || []).join(', ');
+                document.getElementById('task-content').value = task.description;
+            } else {
+                document.getElementById('modal-title').textContent = 'New Task';
+                form.reset();
+            }
+            
+            modal.classList.add('visible');
+        }
+
+        function closeTaskEditor() {
+            document.getElementById('task-modal').classList.remove('visible');
+            state.currentTask = null;
+        }
+
+        async function saveTask(e) {
+            e.preventDefault();
+            
+            const title = document.getElementById('task-title-input').value.trim();
+            const assigned = document.getElementById('task-assigned').value.trim();
+            const progress = parseInt(document.getElementById('task-progress').value) || 0;
+            const due = document.getElementById('task-due').value;
+            const tags = document.getElementById('task-tags').value.split(',').map(t => t.trim()).filter(t => t);
+            const content = document.getElementById('task-content').value.trim();
+
+            const now = new Date().toISOString();
+            
+            try {
+                if (state.currentTask) {
+                    // Update existing task
+                    await updateTask(state.currentTask, { title, assigned, progress, due, tags, content, updated: now });
+                } else {
+                    // Create new task
+                    const taskName = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+                    await createTask(taskName, { title, assigned, progress, due, tags, content, created: now, updated: now });
+                }
+                
+                closeTaskEditor();
+                await loadBoard();
+            } catch (err) {
+                showError('Failed to save task: ' + err.message);
+            }
+        }
+
+        async function updateTask(taskName, data) {
+            const taskHandle = await state.tasksHandle.getFileHandle(taskName + '.md', { create: false });
+            const taskFile = await taskHandle.getFile();
+            let content = await taskFile.text();
+
+            // Update frontmatter
+            content = content.replace(/updated: .+/, `updated: ${data.updated}`);
+            content = content.replace(/assigned: .+/, `assigned: "${data.assigned}"`);
+            content = content.replace(/progress: \d+/, `progress: ${data.progress}`);
+            
+            if (data.due) {
+                if (content.includes('due:')) {
+                    content = content.replace(/due: .+/, `due: ${data.due}`);
+                } else {
+                    content = content.replace(/progress: \d+/, `progress: ${data.progress}\ndue: ${data.due}`);
+                }
+            }
+
+            // Update tags
+            const tagsYaml = data.tags.length > 0 ? `tags:\n${data.tags.map(t => `  - ${t}`).join('\n')}` : 'tags: []';
+            content = content.replace(/tags:[\s\S]*?(?=\n\w+:|---)/m, tagsYaml + '\n');
+
+            // Update title and content
+            content = content.replace(/^# .+$/m, `# ${data.title}`);
+            const contentStart = content.indexOf('# ' + data.title) + data.title.length + 3;
+            const beforeContent = content.substring(0, contentStart);
+            content = beforeContent + '\n\n' + data.content + '\n';
+
+            // Write back
+            const writable = await taskHandle.createWritable();
+            await writable.write(content);
+            await writable.close();
+        }
+
+        async function createTask(taskName, data) {
+            // Create task file
+            const taskContent = `---
+created: ${data.created}
+updated: ${data.updated}
+assigned: "${data.assigned}"
+progress: ${data.progress}
+tags:
+${data.tags.map(t => `  - ${t}`).join('\n')}
+${data.due ? `due: ${data.due}` : ''}
+---
+
+# ${data.title}
+
+${data.content}
+`;
+
+            const taskHandle = await state.tasksHandle.getFileHandle(taskName + '.md', { create: true });
+            const writable = await taskHandle.createWritable();
+            await writable.write(taskContent);
+            await writable.close();
+
+            // Add to index.md in Backlog
+            const indexHandle = await state.kanbnHandle.getFileHandle('index.md');
+            const indexFile = await indexHandle.getFile();
+            let indexContent = await indexFile.text();
+
+            const backlogIndex = indexContent.indexOf('## Backlog');
+            const nextColumnIndex = indexContent.indexOf('\n## ', backlogIndex + 1);
+            const insertIndex = nextColumnIndex !== -1 ? nextColumnIndex : indexContent.length;
+
+            const beforeBacklog = indexContent.substring(0, insertIndex);
+            const afterBacklog = indexContent.substring(insertIndex);
+
+            indexContent = beforeBacklog + `\n- [${taskName}](tasks/${taskName}.md)\n` + afterBacklog;
+
+            const indexWritable = await indexHandle.createWritable();
+            await indexWritable.write(indexContent);
+            await indexWritable.close();
+        }
+
+        function filterTasks() {
+            const query = document.getElementById('search').value.toLowerCase();
+            const cards = document.querySelectorAll('.task-card');
+
+            cards.forEach(card => {
+                const taskName = card.dataset.taskName;
+                const task = state.tasks.get(taskName);
+                
+                if (!task) return;
+
+                const searchText = [
+                    task.title,
+                    task.description,
+                    ...(task.frontmatter.tags || [])
+                ].join(' ').toLowerCase();
+
+                if (searchText.includes(query)) {
+                    card.style.display = '';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+
+        function showLoading(show) {
+            document.getElementById('loading').classList.toggle('visible', show);
+        }
+
+        function showError(message) {
+            const errorEl = document.getElementById('error');
+            errorEl.textContent = message;
+            errorEl.classList.add('visible');
+        }
+
+        function hideError() {
+            document.getElementById('error').classList.remove('visible');
+        }
+
+        // Check for File System Access API support
+        if (!('showDirectoryPicker' in window)) {
+            showError('Your browser does not support the File System Access API. Please use Chrome, Edge, or Opera.');
+        }
+    </script>
+</body>
+</html>

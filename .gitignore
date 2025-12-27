@@ -1,0 +1,28 @@
+# Editor and IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+npm-debug.log*
+
+# Temporary files
+*.tmp
+*.temp
+
+# Example/test files (keep structure, ignore content)
+example/.kanbn/tasks/*.md
+!example/.kanbn/tasks/.gitkeep
+example/.kanbn/index.md
+
+# User-specific files
+.env
+.env.local
