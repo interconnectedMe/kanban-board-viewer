@@ -143,12 +143,21 @@ export function activate(context: vscode.ExtensionContext) {
     }
 
     const resolved = await KanbnStore.resolveKanbnDir(selection[0]);
-    if (!resolved) {
-      void vscode.window.showErrorMessage('Selected folder is not a valid .kanbn directory.');
+    if (resolved) {
+      return resolved;
+    }
+
+    const choice = await vscode.window.showInformationMessage(
+      'No Kanbn board found here. Create a new Kanbn board structure?',
+      { modal: true },
+      'Create',
+      'Cancel'
+    );
+    if (choice !== 'Create') {
       return null;
     }
 
-    return resolved;
+    return KanbnStore.ensureKanbnDir(selection[0]);
   }
 
   function startWatcher(kanbnDir: vscode.Uri) {

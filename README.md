@@ -18,13 +18,20 @@ A VS Code/Antigravity webview extension and standalone HTML Kanban board viewer 
 
 ## Quick Start
 
+### Dev Container (VS Code)
+
+1. Install the **Dev Containers** extension.
+2. In VS Code, run: **Dev Containers: Reopen in Container**
+3. Build the extension:
+   - `npm run compile`
+
 ### VS Code / Antigravity Extension
 
 1. Build the extension:
    - `npm install`
    - `npm run compile`
 2. Open the command palette and run: `Kanban Board Viewer: Open Board`
-3. Select your `.kanbn` folder (or a parent folder containing `.kanbn`)
+3. Select your `.kanbn` folder (or a parent folder containing `.kanbn`). If none exists, the extension will offer to create the required `.kanbn/index.md` + `.kanbn/tasks/` structure.
 
 The extension uses VS Code file APIs, so it works in VS Code and Antigravity without relying on the File System Access API.
 

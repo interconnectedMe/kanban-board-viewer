@@ -1,0 +1,10 @@
+.git/**
+.devcontainer/**
+node_modules/**
+src/**
+tsconfig.json
+kanban-board.html
+AGENT_INSTRUCTIONS.md
+GITHUB_SETUP.md
+CONTRIBUTING.md
+**/*.map

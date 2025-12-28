@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as path from 'path';
 
 export interface TaskData {
   name: string;
@@ -170,6 +171,24 @@ export class KanbnStore {
 
     return null;
   }
+
+  static async ensureKanbnDir(selectedDir: vscode.Uri): Promise<vscode.Uri> {
+    const targetDir = path.basename(selectedDir.fsPath) === '.kanbn'
+      ? selectedDir
+      : vscode.Uri.joinPath(selectedDir, '.kanbn');
+
+    await ensureDirectory(targetDir);
+    await ensureDirectory(vscode.Uri.joinPath(targetDir, 'tasks'));
+
+    const indexUri = vscode.Uri.joinPath(targetDir, 'index.md');
+    if (!(await exists(indexUri))) {
+      const title = path.basename(path.dirname(targetDir.fsPath)) || 'Kanban Board';
+      const index = buildDefaultIndexMd(title);
+      await writeTextFile(indexUri, index);
+    }
+
+    return targetDir;
+  }
 }
 
 async function exists(uri: vscode.Uri): Promise<boolean> {
@@ -189,6 +208,10 @@ async function readTextFile(uri: vscode.Uri): Promise<string> {
 async function writeTextFile(uri: vscode.Uri, content: string): Promise<void> {
   const data = Buffer.from(content, 'utf8');
   await vscode.workspace.fs.writeFile(uri, data);
+}
+
+async function ensureDirectory(uri: vscode.Uri): Promise<void> {
+  await vscode.workspace.fs.createDirectory(uri);
 }
 
 function parseIndexMd(content: string): { title: string; columns: Record<string, string[]> } {
@@ -240,6 +263,12 @@ function addTaskToColumn(content: string, taskName: string, column: string): str
   const taskLine = `- [${taskName}](tasks/${taskName}.md)`;
   insertLineInColumn(lines, taskLine, column);
   return lines.join('\n');
+}
+
+function buildDefaultIndexMd(title: string): string {
+  const safeTitle = title.trim() || 'Kanban Board';
+  const sections = DEFAULT_COLUMNS.map((column) => `## ${column}\n`).join('\n');
+  return `# ${safeTitle}\n\n${sections}`;
 }
 
 function removeLineInColumn(lines: string[], taskLine: string, column: string): void {
