@@ -2,6 +2,8 @@
 
 ## Backlog
 
+- [external-in-browser-antigravity-workaround](tasks/external-in-browser-antigravity-workaround.md)
+
 ## Ready
 
 ## In Progress

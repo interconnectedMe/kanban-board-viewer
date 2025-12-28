@@ -2,7 +2,7 @@
   "name": "kanban-board-viewer",
   "displayName": "Kanban Board Viewer",
   "description": "View and edit Kanbn markdown boards in a dedicated webview.",
-  "version": "0.1.0",
+  "version": "0.1.4",
   "publisher": "local",
   "repository": {
     "type": "git",
@@ -14,15 +14,20 @@
   "categories": [
     "Other"
   ],
-  "activationEvents": [
-    "onCommand:kanbanBoardViewer.openBoard"
-  ],
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [
       {
         "command": "kanbanBoardViewer.openBoard",
         "title": "Kanban Board Viewer: Open Board"
+      },
+      {
+        "command": "kanbanBoardViewer.openExternal",
+        "title": "Kanban Board Viewer: Open In Browser (Antigravity Workaround)"
+      },
+      {
+        "command": "kanbanBoardViewer.openDiagnostics",
+        "title": "Kanban Board Viewer: Diagnostics"
       }
     ]
   },
@@ -30,7 +35,7 @@
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
-    "package": "vsce package",
+    "package": "vsce package --no-dependencies",
     "lint": "echo \"No lint configured\""
   },
   "devDependencies": {

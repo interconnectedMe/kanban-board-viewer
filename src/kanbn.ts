@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
-import * as path from 'path';
+const textDecoder = new TextDecoder('utf-8');
+const textEncoder = new TextEncoder();
 
 export interface TaskData {
   name: string;
@@ -173,7 +174,9 @@ export class KanbnStore {
   }
 
   static async ensureKanbnDir(selectedDir: vscode.Uri): Promise<vscode.Uri> {
-    const targetDir = path.basename(selectedDir.fsPath) === '.kanbn'
+    const segments = selectedDir.path.split('/').filter(Boolean);
+    const lastSegment = segments.length ? segments[segments.length - 1] : '';
+    const targetDir = lastSegment === '.kanbn'
       ? selectedDir
       : vscode.Uri.joinPath(selectedDir, '.kanbn');
 
@@ -182,7 +185,9 @@ export class KanbnStore {
 
     const indexUri = vscode.Uri.joinPath(targetDir, 'index.md');
     if (!(await exists(indexUri))) {
-      const title = path.basename(path.dirname(targetDir.fsPath)) || 'Kanban Board';
+      const title = lastSegment === '.kanbn'
+        ? (segments.length > 1 ? segments[segments.length - 2] : 'Kanban Board')
+        : (lastSegment || 'Kanban Board');
       const index = buildDefaultIndexMd(title);
       await writeTextFile(indexUri, index);
     }
@@ -202,12 +207,11 @@ async function exists(uri: vscode.Uri): Promise<boolean> {
 
 async function readTextFile(uri: vscode.Uri): Promise<string> {
   const data = await vscode.workspace.fs.readFile(uri);
-  return Buffer.from(data).toString('utf8');
+  return textDecoder.decode(data);
 }
 
 async function writeTextFile(uri: vscode.Uri, content: string): Promise<void> {
-  const data = Buffer.from(content, 'utf8');
-  await vscode.workspace.fs.writeFile(uri, data);
+  await vscode.workspace.fs.writeFile(uri, textEncoder.encode(content));
 }
 
 async function ensureDirectory(uri: vscode.Uri): Promise<void> {

@@ -17,6 +17,7 @@ npm-debug.log*
 # Build artifacts
 node_modules/
 dist/
+*.vsix
 
 # Temporary files
 *.tmp
@@ -30,3 +31,6 @@ example/.kanbn/index.md
 # User-specific files
 .env
 .env.local
+
+# Local Kanbn boards
+.kanbn/
