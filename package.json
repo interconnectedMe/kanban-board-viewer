@@ -1,0 +1,37 @@
+{
+  "name": "kanban-board-viewer",
+  "displayName": "Kanban Board Viewer",
+  "description": "View and edit Kanbn markdown boards in a dedicated webview.",
+  "version": "0.1.0",
+  "publisher": "local",
+  "engines": {
+    "vscode": "^1.86.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onCommand:kanbanBoardViewer.openBoard"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "kanbanBoardViewer.openBoard",
+        "title": "Kanban Board Viewer: Open Board"
+      }
+    ]
+  },
+  "scripts": {
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "package": "vsce package",
+    "lint": "echo \"No lint configured\""
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.86.0",
+    "typescript": "^5.3.3",
+    "vsce": "^2.23.0"
+  }
+}

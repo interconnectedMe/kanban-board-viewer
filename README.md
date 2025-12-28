@@ -1,8 +1,8 @@
 # Kanban Board Viewer
 
-A standalone HTML Kanban board viewer for [Kanbn](https://github.com/basementuniverse/kanbn) markdown files. Works in any modern browser with File System Access API support.
+A VS Code/Antigravity webview extension and standalone HTML Kanban board viewer for [Kanbn](https://github.com/basementuniverse/kanbn) markdown files.
 
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![License](https://img.shields.io/badge/license-GPLv3-blue.svg)
 ![Browser](https://img.shields.io/badge/browser-Chrome%20%7C%20Edge%20%7C%20Opera-green.svg)
 
 ## Features
@@ -18,21 +18,35 @@ A standalone HTML Kanban board viewer for [Kanbn](https://github.com/basementuni
 
 ## Quick Start
 
-### 1. Download
+### VS Code / Antigravity Extension
+
+1. Build the extension:
+   - `npm install`
+   - `npm run compile`
+2. Open the command palette and run: `Kanban Board Viewer: Open Board`
+3. Select your `.kanbn` folder (or a parent folder containing `.kanbn`)
+
+The extension uses VS Code file APIs, so it works in VS Code and Antigravity without relying on the File System Access API.
+
+### Standalone HTML Viewer
+
+#### 1. Download
 
 Download `kanban-board.html` from this repository.
 
-### 2. Open in Browser
+#### 2. Open in Browser
 
-**Option A: Simple Browser (VSCode/Antigravity)**
-- Right-click `kanban-board.html`
-- Select "Open with Simple Browser"
+The File System Access API works best from a secure context like `http://localhost` (recommended) and requires a top-level browsing context (not an embedded preview).
 
-**Option B: External Browser**
-- Open Chrome, Edge, or Opera
-- Drag `kanban-board.html` into the browser window
+**Option A: External Browser (recommended)**
+1. In a terminal, start a local server in the folder containing `kanban-board.html`:
+   - `python3 -m http.server 8000`
+2. Open Chrome / Edge / Opera to `http://localhost:8000/kanban-board.html`
 
-### 3. Select Your Board
+**Option B: Open the file directly**
+- You can try opening `kanban-board.html` via `file://` (or dragging it into the browser), but if you don't see the directory picker button working, use Option A or B.
+
+#### 3. Select Your Board
 
 1. Click "Select .kanbn Directory"
 2. Navigate to your Kanbn board's `.kanbn` folder
@@ -46,8 +60,8 @@ Download `kanban-board.html` from this repository.
 | Chrome | ✅ Full Support |
 | Edge | ✅ Full Support |
 | Opera | ✅ Full Support |
-| VSCode Simple Browser | ✅ Full Support |
-| Antigravity Simple Browser | ✅ Full Support |
+| VSCode Simple Browser | ❌ File picker blocked (embedded preview) |
+| Antigravity Simple Browser | ❌ File picker blocked (embedded preview) |
 | Firefox | ⚠️ Limited Support |
 | Safari | ❌ Not Supported |
 
@@ -117,7 +131,7 @@ Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for gui
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) for details.
+GPL-3.0 License - see [LICENSE](LICENSE) for details.
 
 ## Acknowledgments
 
